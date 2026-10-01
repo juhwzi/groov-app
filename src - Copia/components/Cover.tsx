@@ -1,0 +1,1 @@
+export function Cover({title,url,small=false}:{title:string;url?:string|null;small?:boolean}){return <div className={`cover ${small?"miniCover":""}`} style={url?{backgroundImage:`url(${url})`,backgroundSize:"cover",backgroundPosition:"center"}:undefined}><span className="coverTitle">{!url&&title}</span></div>}

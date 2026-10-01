@@ -1,0 +1,361 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Format {
+  DIGITAL
+  VINYL
+  TAPE
+  LIVE
+}
+
+enum EntityType {
+  ALBUM
+  TRACK
+  ARTIST
+}
+
+model User {
+  id                  String       @id @default(cuid())
+  username            String       @unique
+  displayName         String
+  email               String       @unique
+  passwordHash        String?
+  bio                 String?
+  location            String?
+  avatarUrl           String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  frozenAt            DateTime?
+  deletedAt            DateTime?
+  logs                ListeningLog[]
+  reactions           Reaction[]
+  comments            Comment[]
+  topPicks            TopPick[]
+  currentObsessionId  String?
+  currentObsession    Album?       @relation("CurrentObsession", fields: [currentObsessionId], references: [id])
+  dropEntries         GroovDropEntry[]
+  playlists           Playlist[]
+  followers           Follow[]     @relation("followers")
+  following           Follow[]     @relation("following")
+  dualReviews         ListeningLog[] @relation("DualReviews")
+  oauthAccounts       OAuthAccount[]
+  socialLinks         SocialLink[]
+  nowPlaying          NowPlaying?
+  sessions             Session[]
+  auditLogs            AuditLog[]
+  notifications        Notification[] @relation("NotificationRecipient")
+  sentNotifications     Notification[] @relation("NotificationActor")
+  activities           Activity[]
+  recommendations      Recommendation[] @relation("RecommendationUser")
+}
+
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+  @@index([userId, provider])
+}
+
+model SocialLink {
+  id        String   @id @default(cuid())
+  userId    String
+  platform  String
+  label     String
+  url       String
+  position  Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, position])
+}
+
+model Artist {
+  id          String   @id @default(cuid())
+  externalId  String?  @unique
+  name        String
+  imageUrl    String?
+  genres      String[]
+  albums      Album[]
+  createdAt   DateTime @default(now())
+}
+
+model Album {
+  id             String    @id @default(cuid())
+  externalId     String?   @unique
+  title          String
+  artistName     String
+  artistId       String?
+  artist         Artist?   @relation(fields: [artistId], references: [id])
+  coverUrl       String?
+  releaseDate    DateTime?
+  totalTracks    Int?
+  spotifyUrl     String?
+  logs           ListeningLog[]
+  topPicks       TopPick[]
+  currentFor     User[]    @relation("CurrentObsession")
+  tracks         Track[]
+  playlistAlbums PlaylistAlbum[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  recommendations Recommendation[]
+}
+
+model Track {
+  id            String  @id @default(cuid())
+  externalId    String? @unique
+  title         String
+  albumId       String
+  album         Album   @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  artistName    String
+  durationMs    Int?
+  previewUrl    String?
+  coverUrl      String?
+  spotifyUrl    String?
+  playlistItems PlaylistItem[]
+  nowPlayingUsers NowPlaying[]
+  recommendations Recommendation[]
+  groovDropEntries GroovDropEntry[]
+}
+
+model ListeningLog {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  albumId     String
+  album       Album       @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  rating      Float
+  format      Format
+  review      String?
+  hotTake     Boolean     @default(false)
+  listenDate  DateTime    @default(now())
+  isRelisten  Boolean     @default(false)
+  dualWithId  String?
+  dualWith    User?       @relation("DualReviews", fields: [dualWithId], references: [id], onDelete: SetNull)
+  reactions   Reaction[]
+  comments    Comment[]
+  pollVotes   HotTakeVote[]
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  logId     String
+  userId    String
+  type      String
+  log       ListeningLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  @@unique([logId, userId, type])
+}
+
+model Comment {
+  id        String       @id @default(cuid())
+  logId     String
+  userId    String
+  body      String
+  log       ListeningLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+}
+
+model HotTakeVote {
+  id        String       @id @default(cuid())
+  logId     String
+  userId    String
+  choice    String
+  log       ListeningLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  @@unique([logId, userId])
+}
+
+model TopPick {
+  id        String   @id @default(cuid())
+  userId    String
+  albumId   String
+  position  Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  @@unique([userId, position])
+  @@unique([userId, albumId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  follower    User     @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("followers", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  @@unique([followerId, followingId])
+}
+
+model Playlist {
+  id          String   @id @default(cuid())
+  ownerId     String
+  name        String
+  description String?
+  isPublic    Boolean  @default(true)
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items       PlaylistItem[]
+  albums      PlaylistAlbum[]
+  createdAt   DateTime @default(now())
+}
+
+model PlaylistItem {
+  id         String   @id @default(cuid())
+  playlistId String
+  trackId    String
+  note       String?
+  position   Int
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  @@unique([playlistId, trackId])
+}
+
+model PlaylistAlbum {
+  id         String   @id @default(cuid())
+  playlistId String
+  albumId    String
+  position   Int
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  album      Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  @@unique([playlistId, albumId])
+}
+
+model GroovDrop {
+  id          String            @id @default(cuid())
+  weekKey     String            @unique
+  closesAt    DateTime
+  entries     GroovDropEntry[]
+  createdAt   DateTime          @default(now())
+}
+
+model GroovDropEntry {
+  id        String    @id @default(cuid())
+  dropId    String
+  userId    String
+  trackId   String
+  track     Track     @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  drop      GroovDrop @relation(fields: [dropId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  @@unique([dropId, userId])
+}
+
+
+model NowPlaying {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  trackId     String?
+  title       String
+  artistName  String
+  albumName   String?
+  coverUrl    String?
+  externalUrl String?
+  source      String   @default("manual")
+  startedAt   DateTime @default(now())
+  expiresAt   DateTime?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track       Track?   @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  @@index([startedAt])
+}
+
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  tokenHash    String   @unique
+  expiresAt    DateTime
+  lastSeenAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  revokedAt    DateTime?
+  userAgent    String?
+  ipHash       String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipHash     String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  @@unique([key, windowStart])
+  @@index([expiresAt])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  recipientId String
+  actorId     String?
+  type        String
+  entityType  String?
+  entityId    String?
+  message     String?
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+  recipient   User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User?    @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  @@index([recipientId, readAt, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model Activity {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  entityType String?
+  entityId   String?
+  payload    Json?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+model Recommendation {
+  id          String   @id @default(cuid())
+  userId      String
+  albumId     String?
+  trackId     String?
+  score       Float    @default(0)
+  reason      String?
+  source      String   @default("system")
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
+  user        User     @relation("RecommendationUser", fields: [userId], references: [id], onDelete: Cascade)
+  album       Album?   @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  track       Track?   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  @@index([userId, score])
+  @@index([expiresAt])
+}

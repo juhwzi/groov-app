@@ -1,0 +1,3 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+export async function POST(req:Request){const auth=req.headers.get("authorization");if(!process.env.CRON_SECRET||auth!==`Bearer ${process.env.CRON_SECRET}`)return NextResponse.json({error:"Não autorizado"},{status:401});const now=new Date();const [sessions,buckets,activities]=await Promise.all([db.session.deleteMany({where:{expiresAt:{lt:now}}}),db.rateLimitBucket.deleteMany({where:{expiresAt:{lt:now}}}),db.activity.deleteMany({where:{createdAt:{lt:new Date(now.getTime()-180*86400000)}}})]);return NextResponse.json({ok:true,deleted:{sessions:sessions.count,buckets:buckets.count,activities:activities.count}});}

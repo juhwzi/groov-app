@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { RegisterForm } from "@/components/RegisterForm";
+export default function Register(){ return <main className="auth"><div className="authShell"><div className="authBrand"><Link href="/" className="authHomeLink" aria-label="Voltar para a Home"><span className="brandmark">∞</span><span>GROOV</span></Link><Link href="/" className="authBackHome">← Voltar para Home</Link></div><div className="authIntro"><div className="eyebrow">Crie seu universo</div><h1>Seu gosto. Seu diário. Seu Groov.</h1><p>Comece com uma conta social ou monte seu perfil do zero e descubra novos artistas toda semana.</p></div><div className="panel authCard"><RegisterForm/></div></div></main> }

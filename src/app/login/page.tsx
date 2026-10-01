@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { LoginForm } from "@/components/LoginForm";
+export default function Login(){ return <main className="auth"><div className="authShell"><div className="authBrand"><Link href="/" className="authHomeLink" aria-label="Voltar para a Home"><span className="brandmark">∞</span><span>GROOV</span></Link><Link href="/" className="authBackHome">← Voltar para Home</Link></div><div className="authIntro"><div className="eyebrow">Seu diário musical</div><h1>Volte para o seu som.</h1><p>Registre o que você ouve, compartilhe descobertas e acompanhe seu universo musical.</p></div><div className="panel authCard"><LoginForm/></div></div></main> }
